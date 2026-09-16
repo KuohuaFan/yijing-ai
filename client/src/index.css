@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", ui-serif, Georgia, serif;
+  --color-background: #f8f5ee;
+  --color-foreground: #1f2a25;
+  --color-card: #fffdf8;
+  --color-card-foreground: #1f2a25;
+  --color-popover: #fffdf8;
+  --color-popover-foreground: #1f2a25;
+  --color-primary: #1f2a25;
+  --color-primary-foreground: #fffaf0;
+  --color-secondary: #e9ede6;
+  --color-secondary-foreground: #24342c;
+  --color-muted: #f0ece2;
+  --color-muted-foreground: #697269;
+  --color-accent: #f1e8d7;
+  --color-accent-foreground: #5b442d;
+  --color-border: #d8d0c0;
+  --color-input: #d8d0c0;
+  --color-ring: #ad6f28;
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-background font-sans text-foreground antialiased; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button:active { transform: scale(.97); }
+}
+
+.container { width: 100%; margin-inline: auto; padding-inline: 1.25rem; }
+@media (min-width: 640px) { .container { max-width: 640px; padding-inline: 1.75rem; } }
+@media (min-width: 768px) { .container { max-width: 768px; } }
+@media (min-width: 1024px) { .container { max-width: 1080px; padding-inline: 2rem; } }
+@media (min-width: 1280px) { .container { max-width: 1220px; } }
+
+.eyebrow { color: #9b6c32; font-size: 10px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+.grain-overlay { opacity: .6; pointer-events: none; background-image: radial-gradient(rgba(34, 47, 39, .12) .45px, transparent .55px), radial-gradient(rgba(175, 126, 55, .08) .45px, transparent .55px); background-position: 0 0, 5px 6px; background-size: 8px 8px, 11px 11px; mask-image: linear-gradient(to bottom, black, transparent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .group, .transition-all, .transition-colors, .transition-transform { transition-timing-function: cubic-bezier(.23,1,.32,1); }
+}
