@@ -6,6 +6,24 @@ const PREDICTION_PATTERN = /(吉凶|吉或凶|會不會|能不能|是否會|何�
 
 export const POETRY_LOT_HEADINGS = ["文本與來源定位", "逐句釋義", "語詞與典故提示", "意象與結構閱讀", "歧義與慣例", "反思問題與限制"] as const;
 
+const SECTION_SCOPES = [
+  "核對本次提交的籤號、宮廟／系統、來源名稱、版本與網址，不補造缺漏書目。",
+  "依本次可見原文作語義轉述與句間關係整理，不替原籤增字或改寫。",
+  "辨識值得查證的語詞與典故線索；沒有可靠出處時只列為待查，不杜撰來源。",
+  "整理意象、時序、行動詞、轉折與對比的文本結構，不換算個人事件結果。",
+  "說明異文、標點、籤本與在地傳統可能造成的解讀差異，不建立唯一正解。",
+  "提出可回到原文與來源核對的反思問題，不提供吉凶或重大決策指令。",
+] as const;
+
+const SECTION_UNCERTAINTIES = [
+  "來源欄位由使用者提供；除非附有可查網址，本系統未獨立驗證其宮廟、籤號或版本歸屬。",
+  "原文若有缺字、異體字、斷句或標點差異，逐句釋義可能隨底本而改變。",
+  "同一語詞可能有多個典故或一般語義；未取得可核對文獻前不作唯一出處判定。",
+  "結構閱讀屬文學與文化詮釋，不能證明詩句具有事件預測能力。",
+  "不同宮廟、籤本、流派與口傳脈絡可能並存，彼此不必然能相互取代。",
+  "反思問題只供研究參照，不構成宗教儀式替代、醫療、法律、投資或其他專業意見。",
+] as const;
+
 export type PoetryLotInput = {
   poemText: string;
   lotNumber?: string;
@@ -54,29 +72,57 @@ function section(index: number, heading: string, content: string) {
   return `## ${index}. ${heading}\n${content}`;
 }
 
+function traceableExcerpt(poemText: string) {
+  const excerpt = cleanLines(poemText).join("／");
+  return excerpt.length > 180 ? `${excerpt.slice(0, 177)}…` : excerpt || "原文未能切分為可讀句子";
+}
+
+export function addPoetryLotTraceability(content: string, input: PoetryLotInput) {
+  if (content.match(/\*\*原文片段\*\*/g)?.length === POETRY_LOT_HEADINGS.length) return content;
+  const citation = sourceMeta(input);
+  const excerpt = traceableExcerpt(input.poemText);
+  return POETRY_LOT_HEADINGS.map((heading, index) => {
+    const marker = `## ${index + 1}. ${heading}`;
+    const nextMarker = index < POETRY_LOT_HEADINGS.length - 1 ? `## ${index + 2}. ${POETRY_LOT_HEADINGS[index + 1]}` : null;
+    const start = content.indexOf(marker);
+    const bodyStart = start >= 0 ? start + marker.length : -1;
+    const bodyEnd = bodyStart >= 0 && nextMarker ? content.indexOf(nextMarker, bodyStart) : content.length;
+    const body = bodyStart >= 0 ? content.slice(bodyStart, bodyEnd >= 0 ? bodyEnd : content.length).trim() : "本段未取得可讀內容，請回到原文與來源欄位核對。";
+    const traceability = [
+      `**原文片段**：${excerpt}`,
+      `**來源／版本**：${citation.sourceLabel}｜${citation.versionLabel}｜錨點 #${citation.anchor}`,
+      `**解釋範圍**：${SECTION_SCOPES[index]}`,
+      `**不確定性**：${SECTION_UNCERTAINTIES[index]}`,
+    ].join("\n\n");
+    return `${marker}\n${body}\n\n${traceability}`;
+  }).join("\n\n");
+}
+
 export function fallbackPoetryLotGuide(input: PoetryLotInput) {
   const lines = cleanLines(input.poemText);
   const citation = sourceMeta(input);
   const segments = lines.map((line, index) => `第 ${index + 1} 句「${line}」`).join("；") || "原文未能切分為可讀句子";
-  return [
+  const content = [
     section(1, "文本與來源定位", `本次閱讀以${citation.label}為中心。原文來源標示為「${citation.sourceLabel}」，版本為「${citation.versionLabel}」。此頁只處理本次提交的文字，不推定其宮廟、流派、作者或儀式效力。`),
     section(2, "逐句釋義", `可先逐句核對：${segments}。若原文有異文、缺字、標點差異或不同籤本，應以你手上的籤條、官方刊本或已取得許可的底本優先。`),
-    section(3, "語詞與典故提示", `籤詩常借古典語彙、人物、地名或敘事意象壓縮意思。沒有可驗證來源時，本系統不會杜撰典故出處；你可將不明語詞列為待查項，再回到辭典、典籍或原籤本核對。`),
-    section(4, "意象與結構閱讀", `可觀察文字中的行動詞、時序詞、轉折詞與對比意象，辨識它如何安排「處境—張力—可能的閱讀線索」。這是文學與文化研究的結構閱讀，不是把詩句換算為事件結果。`),
-    section(5, "歧義與慣例", `不同宮廟、籤本、解籤傳統或口傳脈絡可能有不同解法。此處不以單一說法取代原籤、宗教儀式或在地解籤人員的脈絡，也不宣稱能判定靈驗與否。`),
+    section(3, "語詞與典故提示", "籤詩常借古典語彙、人物、地名或敘事意象壓縮意思。沒有可驗證來源時，本系統不會杜撰典故出處；你可將不明語詞列為待查項，再回到辭典、典籍或原籤本核對。"),
+    section(4, "意象與結構閱讀", "可觀察文字中的行動詞、時序詞、轉折詞與對比意象，辨識它如何安排『處境—張力—可能的閱讀線索』。這是文學與文化研究的結構閱讀，不是把詩句換算為事件結果。"),
+    section(5, "歧義與慣例", "不同宮廟、籤本、解籤傳統或口傳脈絡可能有不同解法。此處不以單一說法取代原籤、宗教儀式或在地解籤人員的脈絡，也不宣稱能判定靈驗與否。"),
     section(6, "反思問題與限制", `可研究的問題是：${input.question?.trim() || "這首籤詩中哪一個語詞、意象或轉折最需要回到原文與來源再核對？"} 本解說不提供吉凶、事件、醫療、法律、投資或其他重大決策的預測或指令。`),
   ].join("\n\n");
+  return addPoetryLotTraceability(content, input);
 }
 
 export function poetryLotSafetyRedirect(input: PoetryLotInput) {
-  return [
+  const content = [
     section(1, "文本與來源定位", `本次可保留${sourceMeta(input).label}的原文、來源與版本資訊，作為文化與文本研究的對象。`),
     section(2, "逐句釋義", "系統可以協助逐句說明可見語詞與意象，但不會把籤詩轉化為個人的吉凶、事件或結果斷言。"),
     section(3, "語詞與典故提示", "可改問某個語詞、人物、典故或異文是否值得回到原籤、典籍或可靠辭典進一步核對。"),
     section(4, "意象與結構閱讀", "可改以文本中的時序、行動、對比與轉折為中心，整理它們如何構成閱讀張力。"),
     section(5, "歧義與慣例", "不同籤本與宗教傳統可能有不同說法；本功能不取代在地儀式、解籤脈絡或專業判斷。"),
-    section(6, "反思問題與限制", "你的提問涉及吉凶、事件、醫療、法律、投資或其他重大決策。請以可查證事實、專業意見與風險評估作為決策依據；可改問「這首詩的意象與語詞如何閱讀？」"),
+    section(6, "反思問題與限制", "你的提問涉及吉凶、事件、醫療、法律、投資或其他重大決策。請以可查證事實、專業意見與風險評估作為決策依據；可改問『這首詩的意象與語詞如何閱讀？』"),
   ].join("\n\n");
+  return addPoetryLotTraceability(content, input);
 }
 
 export async function createPoetryLotGuide(input: PoetryLotInput) {
@@ -101,7 +147,7 @@ export async function createPoetryLotGuide(input: PoetryLotInput) {
     }));
     const raw = typeof response.choices[0]?.message?.content === "string" ? response.choices[0].message.content.trim() : "";
     if (!raw || POETRY_LOT_HEADINGS.some((heading) => !raw.includes(heading))) throw new Error("Incomplete poetry-lot guide headings");
-    return { kind: "guide" as const, content: raw, citations: [citation] };
+    return { kind: "guide" as const, content: addPoetryLotTraceability(raw, input), citations: [citation] };
   } catch (error) {
     console.warn("[Poetry Lot] Falling back to deterministic guide:", error);
     return { kind: "fallback" as const, content: fallback, citations: [citation] };

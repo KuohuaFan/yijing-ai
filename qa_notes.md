@@ -119,3 +119,15 @@ PDF 交付已將列印 HTML 抽為可測試產生器。回歸測試確認其固�
 以自創四句測試詩及低風險問題完成實際導讀：服務端回覆「文本與來源定位、逐句釋義、語詞與典故提示、意象與結構閱讀、歧義與慣例、反思問題與限制」六段，並正確保留自創來源、版本與未提供網址的明示狀態。研究交付區顯示存檔、複製、Word、PDF、分享、Facebook、IG 七項控制；本機存檔已以瀏覽器暫存核對成功。公開分享、Facebook／IG 發佈與實際 Word／PDF 下載尚未執行，仍須使用者確認後驗證。
 
 使用者於公開網址 `yijingai.manus.space` 的行動版截圖確認仍未看見「解詩籤」。核對結果是公開站仍使用詩籤功能加入前的舊 checkpoint，而非入口程式失效。開發版首頁已實際顯示「解詩籤」快捷按鍵；展開右上功能選單後亦實際顯示「解詩籤」並連向 `/poetry-lot`。下一步為保存本批變更成新 checkpoint，交由使用者按 Publish 後再核對公開網址。
+
+## 2026-09-16 開源與 GitHub Pages
+
+已建立公開倉庫 `https://github.com/KuohuaFan/yijing-ai`，並將通過敏感資訊掃描的完整原始碼快照推送至 `main`。GitHub App 權限不允許首次推送 `.github/workflows`，因此公開備份未帶入 workflow 檔；專案工作區仍保留 CI／Pages workflow 原稿，公開 Pages 改採 GitHub 內建的 branch deployment。
+
+已在 GitHub Pages 設定頁選擇 `main` 分支與 `/docs` 資料夾，並取得「GitHub Pages source saved」確認；GitHub 顯示網站正在建置。預期網址為 `https://kuohuafan.github.io/yijing-ai/`，待建置完成後再核對 Logo、README 連結與正式全端站導向。
+
+建置其後完成，Pages API 回報 `built`，`https://kuohuafan.github.io/yijing-ai/` 實際回傳 HTTP 200。頁面已核對標題「易經 AI｜開源專案展示」、紫色白鳥 Logo、GitHub 原始碼連結、版本與來源連結及 `https://yijingai.manus.space` 正式全端站導向。公開倉庫狀態為 `PUBLIC`，預設分支為 `main`，首頁欄位已設定為 Pages 網址。
+
+## 2026-09-16 詩籤六段逐段可追溯標籤
+
+以自創四句測試詩、使用者自創來源、測試版本與低風險研究問題完成實際生成。六個段落均固定顯示原文片段、來源／版本、段落解釋範圍與不確定性，且來源錨點保持一致；這些欄位由服務端在模型、確定性回退與高風險轉向三種路徑統一注入，不依賴模型自行遵守。行動版 390×844 全頁檢查確認 Logo、來源表單、同意框與生成按鍵無橫向溢出。型別檢查、敏感資訊掃描、45 項單元測試及正式建置皆通過；Facebook／Instagram 實際對外分享與行動真機下載仍保留為使用者確認項目。
