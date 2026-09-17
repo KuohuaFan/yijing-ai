@@ -23,4 +23,14 @@ describe("八字私密資料加密金鑰", () => {
     expect(JSON.stringify(encrypted)).not.toContain(input.birthDate);
     expect(decryptSensitiveBaziInput(encrypted)).toEqual(input);
   });
+
+  it("拒絕未知加密版本，避免以不相容格式解密敏感資料", () => {
+    expect(() => decryptSensitiveBaziInput({ encryptionVersion: "unknown", iv: "00", authTag: "00", ciphertext: "00" })).toThrow("不支援");
+  });
+
+  it("未明示同意時拒絕即時計算與永久保存", async () => {
+    const caller = appRouter.createCaller(authenticatedContext());
+    await expect(caller.bazi.calculate({ consent: false, year: 1990, month: 6, day: 7, hour: 9, minute: 11, sect: 2, targetYear: 2026 } as never)).rejects.toThrow();
+    await expect(caller.bazi.saveProfile({ saveConsent: false, label: "拒絕保存", year: 1990, month: 6, day: 7, hour: 9, minute: 11, sect: 2, targetYear: 2026, timezone: "Asia/Taipei" } as never)).rejects.toThrow();
+  });
 });

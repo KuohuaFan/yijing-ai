@@ -14,6 +14,16 @@ export type BaziInput = {
 
 const STEM_ELEMENTS: Record<string, string> = { 甲: "木", 乙: "木", 丙: "火", 丁: "火", 戊: "土", 己: "土", 庚: "金", 辛: "金", 壬: "水", 癸: "水" };
 
+function assertValidCivilDate(input: BaziInput) {
+  const date = new Date(Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute));
+  const valid = date.getUTCFullYear() === input.year
+    && date.getUTCMonth() === input.month - 1
+    && date.getUTCDate() === input.day
+    && date.getUTCHours() === input.hour
+    && date.getUTCMinutes() === input.minute;
+  if (!valid) throw new Error("出生日期或時間不是有效的公曆民用時間。");
+}
+
 export type StoredDaYunConventions = { genderParameter: "male" | "female"; calculationSect: 1 | 2; ruleVersion: string };
 
 export function readStoredDaYunConventions(chartResult: unknown): StoredDaYunConventions | undefined {
@@ -26,9 +36,9 @@ export function readStoredDaYunConventions(chartResult: unknown): StoredDaYunCon
 }
 
 function calculateDaYun(eightChar: any, input: BaziInput) {
-  if (!input.daYunGender) return undefined;
+  if (!input.daYunGender || !input.daYunSect) return undefined;
   const gender = input.daYunGender;
-  const calculationSect = input.daYunSect === 1 ? 1 : 2;
+  const calculationSect = input.daYunSect;
   const yun = eightChar.getYun(gender === "male" ? 1 : 0, calculationSect);
   const allPeriods = yun.getDaYun(9);
   const startSolar = yun.getStartSolar();
@@ -65,6 +75,7 @@ function calculateDaYun(eightChar: any, input: BaziInput) {
 }
 
 export function calculateBazi(input: BaziInput) {
+  assertValidCivilDate(input);
   const solar = Solar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0);
   const lunar = solar.getLunar();
   const eightChar = lunar.getEightChar();
@@ -91,6 +102,6 @@ export function calculateBazi(input: BaziInput) {
     elementCounts,
     annual: { year: input.targetYear, ganZhi: targetLunar.getYearInGanZhiByLiChun(), reference: "以立春為年柱界，月份採節氣月。" },
     daYun: calculateDaYun(eightChar, input),
-    conventions: { engine: "lunar-javascript 1.7.7", calendar: "公曆輸入；節氣月", dayBoundary: input.sect === 1 ? "子初（23:00）" : "子正（00:00）", timezoneNotice: "本 MVP 以使用者輸入的民用時間計算，尚未套用真太陽時校正。", daYunNotice: input.daYunGender ? "大運以使用者選擇的傳統規則參數與起運換算口徑計算；不同傳統可能採用不同口徑。" : "尚未選擇傳統大運順逆行參數，因此未計算大運時間軸。" },
+    conventions: { engine: "lunar-javascript 1.7.7", calendar: "公曆輸入；節氣月", dayBoundary: input.sect === 1 ? "子初（23:00）" : "子正（00:00）", timezoneNotice: "本 MVP 以使用者輸入的民用時間計算，尚未套用真太陽時校正。", daYunNotice: input.daYunGender && input.daYunSect ? "大運以使用者選擇的傳統規則參數與起運換算口徑計算；不同傳統可能採用不同口徑。" : "尚未同時選擇傳統大運順逆行參數與起運換算口徑，因此未計算大運時間軸。" },
   };
 }

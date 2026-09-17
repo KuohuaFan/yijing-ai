@@ -110,11 +110,15 @@ export async function getBaziChartForOwner(userId: number, chartId: number) {
   return { chart, annual };
 }
 
+export function canDeleteOwnedBaziRecord(record: { userId: number } | undefined, requesterUserId: number) {
+  return Boolean(record && record.userId === requesterUserId);
+}
+
 export async function deleteBaziProfile(userId: number, profileId: number) {
   const db = await getDb();
   if (!db) throw new Error("資料庫目前無法使用，請稍後再試。");
-  const [profile] = await db.select({ id: birthProfiles.id }).from(birthProfiles).where(and(eq(birthProfiles.id, profileId), eq(birthProfiles.userId, userId))).limit(1);
-  if (!profile) throw new Error("找不到可刪除的私密排盤資料。\n");
+  const [profile] = await db.select({ id: birthProfiles.id, userId: birthProfiles.userId }).from(birthProfiles).where(eq(birthProfiles.id, profileId)).limit(1);
+  if (!canDeleteOwnedBaziRecord(profile, userId)) throw new Error("找不到可刪除的私密排盤資料。\n");
   await db.delete(birthProfiles).where(and(eq(birthProfiles.id, profileId), eq(birthProfiles.userId, userId)));
   return { success: true } as const;
 }
@@ -122,8 +126,8 @@ export async function deleteBaziProfile(userId: number, profileId: number) {
 export async function deleteBaziChart(userId: number, chartId: number) {
   const db = await getDb();
   if (!db) throw new Error("資料庫目前無法使用，請稍後再試。");
-  const [chart] = await db.select({ id: baziCharts.id }).from(baziCharts).where(and(eq(baziCharts.id, chartId), eq(baziCharts.userId, userId))).limit(1);
-  if (!chart) throw new Error("找不到可刪除的私密排盤結果。\n");
+  const [chart] = await db.select({ id: baziCharts.id, userId: baziCharts.userId }).from(baziCharts).where(eq(baziCharts.id, chartId)).limit(1);
+  if (!canDeleteOwnedBaziRecord(chart, userId)) throw new Error("找不到可刪除的私密排盤結果。\n");
   await db.delete(baziCharts).where(and(eq(baziCharts.id, chartId), eq(baziCharts.userId, userId)));
   return { success: true } as const;
 }

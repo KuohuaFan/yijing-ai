@@ -21,6 +21,8 @@ describe("八字規則引擎", () => {
   it("僅在使用者明示傳統順逆行參數時產生可檢查的大運時間軸", () => {
     const base = { year: 1981, month: 1, day: 29, hour: 23, minute: 37, sect: 2 as const, targetYear: 1995 };
     expect(calculateBazi(base).daYun).toBeUndefined();
+    expect(calculateBazi({ ...base, daYunGender: "female" }).daYun).toBeUndefined();
+    expect(calculateBazi({ ...base, daYunSect: 1 }).daYun).toBeUndefined();
     const daYun = calculateBazi({ ...base, daYunGender: "female" as const, daYunSect: 1 as const }).daYun;
     expect(daYun?.direction).toMatch(/順行|逆行/);
     expect(daYun?.start.solarDate).toContain("1989-02-18");
@@ -39,5 +41,9 @@ describe("八字規則引擎", () => {
     const chart = calculateBazi({ year: 1990, month: 1, day: 1, hour: 12, minute: 0, sect: 2, targetYear: 2026, daYunGender: "female", daYunSect: 1 });
     const reloadedChart = JSON.parse(JSON.stringify(chart));
     expect(readStoredDaYunConventions(reloadedChart)).toEqual({ genderParameter: "female", calculationSect: 1, ruleVersion: "lunar-javascript-yun-v1" });
+  });
+
+  it("拒絕不存在的公曆日期，避免曆法套件自動正規化錯誤輸入", () => {
+    expect(() => calculateBazi({ year: 2023, month: 2, day: 29, hour: 12, minute: 0, sect: 2, targetYear: 2026 })).toThrow("有效的公曆民用時間");
   });
 });

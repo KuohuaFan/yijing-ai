@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ChatRecord } from "@/lib/chatHistory";
+import { buildHistoryGroups } from "@/lib/historyFilter";
+import { BrandIcon } from "@/components/BrandMark";
 
 type HistoryRailProps = {
   records: ChatRecord[];
@@ -30,15 +32,7 @@ export function HistoryRail({ records, activeId, onSelect, onNew, onDelete, onSt
   const [tagName, setTagName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [artifactOpen, setArtifactOpen] = useState(false);
-  const active = records.find((record) => record.id === activeId);
-  const searched = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return records;
-    return records.filter((record) => [record.title, record.project, ...(record.tags ?? []), ...record.messages.map((message) => message.content)].join("\n").toLowerCase().includes(needle));
-  }, [query, records]);
-  const starred = searched.filter((record) => record.starred);
-  const allChats = searched.filter((record) => record.id !== activeId);
-  const projects = Array.from(new Set(records.map((record) => record.project).filter(Boolean)));
+  const { active, starred, allChats, projects } = useMemo(() => buildHistoryGroups(records, activeId, query), [activeId, query, records]);
 
   const select = (id: string) => { onSelect(id); setOpen(false); };
   const row = (record: ChatRecord, tone: "plain" | "starred" = "plain") => <button key={record.id} onClick={() => select(record.id)} className={cn("w-full px-1 py-2 text-left text-[15px] leading-6 transition-colors", record.id === activeId ? "font-semibold text-[#21332a]" : "text-[#303a34] hover:text-[#926a32]", tone === "starred" && "flex items-start gap-2")}>
@@ -49,14 +43,23 @@ export function HistoryRail({ records, activeId, onSelect, onNew, onDelete, onSt
   return <>
     <Button aria-label="開啟研讀歷程" size="icon" variant="ghost" onClick={() => setOpen(true)} className="fixed left-4 top-4 z-[80] rounded-full bg-[#fffdf8]/90 text-[#1f2a25] shadow-[0_8px_28px_rgba(31,42,37,.12)] backdrop-blur hover:bg-[#fffdf8]"><Menu className="size-5" /></Button>
     <aside className={cn("pointer-events-auto fixed inset-y-0 left-0 z-[90] flex w-[min(24rem,92vw)] flex-col bg-[#fbfaf7] shadow-[22px_0_55px_rgba(31,42,37,.16)] transition-transform duration-300", open ? "translate-x-0" : "-translate-x-full")}>
-      <header className="flex items-center justify-between border-b border-[#e5e2da] px-6 py-5"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#1f2a25] text-[#e8d4a7]">☷</span><div><p className="font-serif text-xl font-semibold tracking-[.12em] text-[#26332c]">觀易</p><p className="text-[11px] text-[#8c775b]">你的研讀歷程</p></div></div><Button aria-label="收起歷程" size="icon" variant="ghost" onClick={() => setOpen(false)}><X className="size-5" /></Button></header>
+      <header className="flex shrink-0 items-center gap-3 border-b border-[#e5e2da] px-5 py-5 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <BrandIcon className="size-10" />
+          <div className="min-w-0">
+            <p className="whitespace-nowrap font-serif text-xl font-semibold tracking-[.12em] text-[#26332c]">觀易</p>
+            <p className="whitespace-nowrap text-[11px] text-[#8c775b]">你的研讀歷程</p>
+          </div>
+        </div>
+        <Button aria-label="收起歷程" size="icon" variant="ghost" onClick={() => setOpen(false)} className="shrink-0"><X className="size-5" /></Button>
+      </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8">
         <div className="space-y-1 border-b border-[#e5e2da] py-4">
           <button onClick={isAuthenticated ? undefined : onLogin} className="flex w-full items-center gap-3 rounded-xl bg-[#f1efff] px-3 py-3 text-left"><UserRound className="size-5 text-[#7867cd]" /><span><b className="block text-sm text-[#31313c]">帳號與保存</b><small className="text-xs text-[#6a6a75]">{isAuthenticated ? "附件、專案與成果已同步" : "完成設定後可保存對話、專案與成果"}</small></span></button>
           <button onClick={() => window.location.assign("/")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#f2f0eb]"><Home className="size-5 text-[#a27843]" /><b className="text-lg text-[#27332c]">觀易首頁</b></button>
           <div className="rounded-xl px-3 py-3"><div className="flex items-center gap-3"><FolderKanban className="size-5" /><span>Projects</span></div>{projects.length ? <div className="mt-2 flex flex-wrap gap-2">{projects.map((project) => <button key={project} onClick={() => onProject(project)} className="rounded-full bg-[#f0ede6] px-3 py-1.5 text-xs text-[#604d34]">{project}</button>)}</div> : <button onClick={() => active && onProject(projectName || "研讀專案")} className="mt-2 text-xs text-[#8c775b] underline">建立第一個研讀專案</button>}</div>
-          <button onClick={() => setArtifactOpen((value) => !value)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#f2f0eb]"><Archive className="size-5" /><span>Artifacts</span></button>
-          {artifactOpen && <div className="ml-8 grid gap-1 border-l border-[#ded7c8] pl-3"><button onClick={onSave} className="flex items-center gap-2 py-2 text-sm"><Save className="size-3.5" />儲存目前紀錄</button><button disabled={!active} onClick={onShare} className="flex items-center gap-2 py-2 text-sm disabled:opacity-40"><Share2 className="size-3.5" />建立分享連結</button><button disabled={!active} onClick={onPrint} className="flex items-center gap-2 py-2 text-sm disabled:opacity-40"><FileDown className="size-3.5" />匯出 PDF</button></div>}
+          <button aria-expanded={artifactOpen} aria-controls="history-artifacts" onClick={() => setArtifactOpen((value) => !value)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#f2f0eb]"><Archive className="size-5" /><span>Artifacts</span></button>
+          {artifactOpen && <div id="history-artifacts" className="ml-8 grid gap-1 border-l border-[#ded7c8] pl-3"><button onClick={onSave} className="flex items-center gap-2 py-2 text-sm"><Save className="size-3.5" />儲存目前紀錄</button><button disabled={!active} onClick={onShare} className="flex items-center gap-2 py-2 text-sm disabled:opacity-40"><Share2 className="size-3.5" />建立分享連結</button><button disabled={!active} onClick={onPrint} className="flex items-center gap-2 py-2 text-sm disabled:opacity-40"><FileDown className="size-3.5" />匯出 PDF</button></div>}
         </div>
 
         <div className="pt-5"><div className="relative"><Search className="absolute left-3 top-3 size-4 text-[#8c8a83]" /><Input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && query.trim().length >= 2) window.location.assign(`/search?q=${encodeURIComponent(query.trim())}`); }} placeholder="搜尋對話與原典（按 Enter）…" className="h-10 border-0 bg-[#f3f2f0] pl-9 shadow-none" /></div><p className="mt-2 text-[10px] leading-5 text-[#8a867e]">按 Enter 以搜尋原典、十翼與本人可見研讀資料。</p></div>
